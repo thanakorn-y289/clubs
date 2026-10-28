@@ -142,7 +142,17 @@
     window.addEventListener('resize', gPlace);
     // iPhone: แถบที่อยู่ยุบ/ขยาย หรือหน้าเลื่อน = จอที่มองเห็นเปลี่ยน → วางปุ่มใหม่
     if (window.visualViewport) { visualViewport.addEventListener('resize', gPlace); visualViewport.addEventListener('scroll', gPlace); }
-    window.addEventListener('scroll', function () { window.scrollTo(0, 0); gPlace(); }, { passive: true });
+    // Safari: ลากลงแล้วทั้งหน้านี้เด้ง (scrollY ติดลบ) แทนที่แอปจะได้การลาก → เด้งลึกพอแล้วปล่อย = โหลดใหม่ทั้งหน้า
+    var wMin = 0;
+    function wReload() { document.getElementById('loader').classList.remove('off'); location.reload(); }
+    window.addEventListener('scroll', function () {
+      var y = window.scrollY || window.pageYOffset || 0;
+      if (y < 0) { wMin = Math.min(wMin, y); return; }
+      if (wMin <= -60) { wMin = 0; wReload(); return; }
+      wMin = 0;
+      if (y > 0) window.scrollTo(0, 0);
+      gPlace();
+    }, { passive: true });
 
     // ---- พิมพ์เอกสาร (แอป → { tes:'print', html, css } · css = กฎ @media print ของแอป) ----
     var pRoot = document.getElementById('print-root'), pBar = document.getElementById('pbar'), pStyle = null;
@@ -184,8 +194,7 @@
       var d = ev.data;
       // แอปขอโหลดใหม่ทั้งหน้า (ลากหน้าจอลงในมือถือ)
       if (d && d.tes === 'reload' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
-        document.getElementById('loader').classList.remove('off');
-        location.reload();
+        wReload();
         return;
       }
       if (d && d.tes === 'print' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
