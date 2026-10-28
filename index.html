@@ -41,6 +41,11 @@
     #gfb .gfb-g { font-weight: 700; color: #4285f4; font-size: 16px; }
     /* พิมพ์เอกสาร: แอปส่งหน้าเอกสารมาให้หน้านี้พิมพ์ (พิมพ์จากกรอบ Apps Script ใน iPad/มือถือ ไม่เสถียร และติดแถบของ Google) */
     #print-root { display: none; }
+    /* หน้านี้ล็อกความสูง 100% + ซ่อนส่วนเกิน (ไว้ครอบแอป) → ตอนพิมพ์ต้องปลด ไม่งั้นได้แค่หน้าแรก */
+    @media print {
+      html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+      #app, #loader, #gfloat, #pbar { display: none !important; }
+    }
     #pbar { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,.45); padding: 20px;
       font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
     #pbar.on { display: flex; }
