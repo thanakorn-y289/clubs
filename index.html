@@ -8,6 +8,20 @@
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
   <!-- ปุ่มเข้าสู่ระบบด้วย Google — skill pcschool-google-login (โค้ดชุดเดียวกับ /ask /doc /senddoc) -->
+  <script>
+    // เปิดลิงก์จากแอป LINE/Facebook/Instagram/TikTok → เด้งไปเบราว์เซอร์อัตโนมัติ (เข้าด้วย Google ในเบราว์เซอร์ของแอปไม่ได้)
+    //   LINE: ?openExternalBrowser=1 · Android: intent เปิด Chrome · iPhone: x-safari-https (iOS 17 ขึ้นไป)
+    //   ?ext=1 = เคยเด้งแล้ว (กันวนเมื่อเปิดเบราว์เซอร์ไม่ได้)
+    var IN_APP = /\bLine\/|FBAN|FBAV|FB_IAB|Instagram|BytedanceWebview|musical_ly/i.test(navigator.userAgent);
+    function openExternal() {
+      var ua = navigator.userAgent, u = new URL(location.href);
+      if (/\bLine\//i.test(ua)) { u.searchParams.set('openExternalBrowser', '1'); location.replace(u.toString()); return; }
+      u.searchParams.set('ext', '1');
+      if (/Android/i.test(ua)) location.href = 'intent://' + u.host + u.pathname + u.search + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(u.toString()) + ';end';
+      else if (/iPhone|iPad|iPod/i.test(ua)) location.href = 'x-safari-' + u.toString();
+    }
+    if (IN_APP && !/[?&](openExternalBrowser|ext)=1/.test(location.search)) openExternal();
+  </script>
   <script src="https://accounts.google.com/gsi/client" async onload="window.gReady && window.gReady()"></script>
   <style>
     html, body { margin: 0; height: 100%; background: #fcf4f6; overflow: hidden; }
@@ -60,7 +74,7 @@
     }
 
     // เบราว์เซอร์ในแอป (LINE/Facebook/Instagram) Google ไม่วาดปุ่ม → ปุ่ม "เปิดในเบราว์เซอร์"
-    var gInApp = /\bLine\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+    var gInApp = IN_APP;
     var gFbTimer = 0;
     function gFallback(kind) {
       var fb = document.getElementById('gfb'), btn = document.getElementById('gbtn');
@@ -68,7 +82,10 @@
       btn.style.display = 'none'; fb.style.display = 'flex';
       if (kind === 'open') {
         fb.innerHTML = '<span class="gfb-g">G</span>เปิดในเบราว์เซอร์เพื่อเข้าด้วย Google';
-        fb.onclick = function () { var u = new URL(location.href); u.searchParams.set('openExternalBrowser', '1'); location.href = u.toString(); };
+        fb.onclick = function () {
+          openExternal();
+          if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) setTimeout(function () { alert('ถ้ายังไม่เด้ง: กดปุ่ม ⋯ หรือ ↗ มุมจอ แล้วเลือก “เปิดใน Safari”'); }, 1500);
+        };
       } else {
         fb.innerHTML = '<span class="gfb-g">G</span>ลงชื่อเข้าใช้ด้วย Google';
         fb.onclick = function () { if (gReadyNow()) google.accounts.id.prompt(); else location.reload(); };
