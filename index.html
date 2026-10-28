@@ -68,6 +68,8 @@
   <div id="gfloat" role="region" aria-label="เข้าสู่ระบบด้วย Google"><div id="gbtn"></div><button type="button" id="gfb" style="display:none"></button></div>
   <script>
     var link = document.getElementById('app');
+    // Safari: หน้านี้ต้องมีตัวฟังการแตะ ไม่งั้น Safari ส่งการลากลงให้แอปในกรอบไม่ครบ → ลากรีโหลดไม่ได้ (ทดสอบแล้ว: มีตัวฟัง = ได้)
+    ['touchstart', 'touchmove', 'touchend'].forEach(function (t) { window.addEventListener(t, function () { }, { passive: true }); });
     // โหมดตรวจสอบการลากรีโหลด: ?debug=ptr → ส่งต่อให้แอป + แถบบนจอของหน้านี้
     var WDBG = /[?&]debug=ptr\b/.test(location.search) ? { c: {} } : null;
     function wDbg(k, v) {
