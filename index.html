@@ -68,6 +68,21 @@
   <div id="gfloat" role="region" aria-label="เข้าสู่ระบบด้วย Google"><div id="gbtn"></div><button type="button" id="gfb" style="display:none"></button></div>
   <script>
     var link = document.getElementById('app');
+    // โหมดตรวจสอบการลากรีโหลด: ?debug=ptr → ส่งต่อให้แอป + แถบบนจอของหน้านี้
+    var WDBG = /[?&]debug=ptr\b/.test(location.search) ? { c: {} } : null;
+    function wDbg(k, v) {
+      if (!WDBG) return;
+      WDBG.c[k] = v === undefined ? (WDBG.c[k] || 0) + 1 : v;
+      WDBG.el.textContent = 'wrap  ' + Object.keys(WDBG.c).map(function (x) { return x + '=' + WDBG.c[x]; }).join('  ');
+    }
+    if (WDBG) {
+      link.src = link.src + '?debug=ptr';
+      WDBG.el = document.createElement('div');
+      WDBG.el.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99;background:rgba(0,0,0,.85);color:#facc15;font:12px/1.5 monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';
+      document.body.appendChild(WDBG.el);
+      wDbg('ua', /CriOS/.test(navigator.userAgent) ? 'chrome-ios' : /Safari/.test(navigator.userAgent) && /AppleWebKit/.test(navigator.userAgent) ? 'safari?' : 'other');
+      ['touchstart', 'touchmove', 'touchend'].forEach(function (t) { window.addEventListener(t, function () { wDbg(t); }, { passive: true }); });
+    }
     link.addEventListener('load', function () { document.getElementById('loader').classList.add('off'); });
     setTimeout(function () { document.getElementById('loader').classList.add('off'); }, 12000);
 
@@ -147,6 +162,7 @@
     function wReload() { document.getElementById('loader').classList.remove('off'); location.reload(); }
     window.addEventListener('scroll', function () {
       var y = window.scrollY || window.pageYOffset || 0;
+      wDbg('scroll', Math.round(y)); if (y < wDbg.min || wDbg.min === undefined) { wDbg.min = y; wDbg('min', Math.round(y)); }
       if (y < 0) { wMin = Math.min(wMin, y); return; }
       if (wMin <= -60) { wMin = 0; wReload(); return; }
       wMin = 0;
@@ -193,6 +209,7 @@
     window.addEventListener('message', function (ev) {
       var d = ev.data;
       // แอปขอโหลดใหม่ทั้งหน้า (ลากหน้าจอลงในมือถือ)
+      if (d && d.tes === 'reload') wDbg('reloadMsg', String(ev.origin).slice(8, 20));
       if (d && d.tes === 'reload' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
         wReload();
         return;
