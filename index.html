@@ -39,6 +39,17 @@
     #gfb { width: 100%; height: 40px; border: 1px solid #dadce0; border-radius: 999px; background: #fff; color: #3c4043;
       font: 500 14px/1 system-ui, sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
     #gfb .gfb-g { font-weight: 700; color: #4285f4; font-size: 16px; }
+    /* พิมพ์เอกสาร: แอปส่งหน้าเอกสารมาให้หน้านี้พิมพ์ (พิมพ์จากกรอบ Apps Script ใน iPad/มือถือ ไม่เสถียร และติดแถบของ Google) */
+    #print-root { display: none; }
+    #pbar { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,.45); padding: 20px;
+      font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    #pbar.on { display: flex; }
+    #pbar > div { background: #fff; border-radius: 18px; padding: 22px 20px 18px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 16px 44px rgba(0,0,0,.2); }
+    #pbar b { display: block; font-size: 17px; color: #26323f; margin-bottom: 4px; }
+    #pbar p { margin: 0 0 16px; color: #6b7684; font-size: 14px; }
+    #pbar button { height: 44px; border-radius: 12px; font: 600 15px system-ui, sans-serif; cursor: pointer; padding: 0 18px; }
+    #pbar .go { background: #9a2f3f; color: #fff; border: 0; width: 100%; margin-bottom: 8px; }
+    #pbar .no { background: #fff; color: #3d4a58; border: 1px solid #d5dae1; width: 100%; }
   </style>
 </head>
 <body>
@@ -46,6 +57,9 @@
   <!-- ลิงก์ Web app (Deploy → Manage deployments → Web app URL) — เปลี่ยนเมื่อสร้าง deployment ใหม่ (ปกติใช้ Edit → New version จึงไม่ต้องเปลี่ยน) -->
   <iframe id="app" title="ระบบกิจกรรมชุมนุม" allow="camera; clipboard-write"
           src="https://script.google.com/a/macros/pcschool.ac.th/s/AKfycbxXQeRoxQHc2xpSaGXIW0Z9ESIZpJrU8MxVuvR0FsshsDx5I02wPfXfRshEJ38Xwru35w/exec"></iframe>
+  <div id="pbar" role="dialog" aria-modal="true"><div><b>เอกสารพร้อมพิมพ์</b><p id="pbar-msg">กดปุ่มด้านล่างเพื่อเปิดหน้าพิมพ์</p>
+    <button type="button" class="go" id="pbar-go">พิมพ์เอกสาร</button><button type="button" class="no" id="pbar-no">ปิด</button></div></div>
+  <div id="print-root"></div>
   <div id="gfloat" role="region" aria-label="เข้าสู่ระบบด้วย Google"><div id="gbtn"></div><button type="button" id="gfb" style="display:none"></button></div>
   <script>
     var link = document.getElementById('app');
@@ -125,6 +139,36 @@
     if (window.visualViewport) { visualViewport.addEventListener('resize', gPlace); visualViewport.addEventListener('scroll', gPlace); }
     window.addEventListener('scroll', function () { window.scrollTo(0, 0); gPlace(); }, { passive: true });
 
+    // ---- พิมพ์เอกสาร (แอป → { tes:'print', html, css } · css = กฎ @media print ของแอป) ----
+    var pRoot = document.getElementById('print-root'), pBar = document.getElementById('pbar'), pStyle = null;
+    var pTouch = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    function pFonts() {
+      if (!document.getElementById('pfont')) {
+        var l = document.createElement('link'); l.id = 'pfont'; l.rel = 'stylesheet';
+        l.href = 'https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap';
+        document.head.appendChild(l);
+      }
+      if (!document.fonts || !document.fonts.load) return Promise.resolve();
+      return Promise.race([Promise.all([document.fonts.load('400 12pt Sarabun'), document.fonts.load('700 12pt Sarabun')]),
+        new Promise(function (ok) { setTimeout(ok, 4000); })]).catch(function () { });
+    }
+    function pPrepare(html, css) {
+      if (!pStyle) { pStyle = document.createElement('style'); document.head.appendChild(pStyle); }
+      pStyle.textContent = css;
+      pRoot.innerHTML = html;
+      var imgs = Array.prototype.slice.call(pRoot.querySelectorAll('img')).map(function (im) { return im.decode ? im.decode().catch(function () { }) : null; });
+      var go = document.getElementById('pbar-go');
+      go.disabled = true; go.textContent = 'กำลังเตรียม…';
+      if (pTouch) pBar.classList.add('on'); // iPad/มือถือ: ต้องกดปุ่มเอง เบราว์เซอร์จึงยอมเปิดหน้าพิมพ์
+      Promise.all(imgs.concat([pFonts()])).then(function () {
+        go.disabled = false; go.textContent = 'พิมพ์เอกสาร';
+        if (!pTouch) setTimeout(function () { window.print(); }, 150);
+      });
+    }
+    document.getElementById('pbar-go').onclick = function () { window.print(); };
+    document.getElementById('pbar-no').onclick = function () { pBar.classList.remove('on'); pRoot.innerHTML = ''; };
+    window.addEventListener('afterprint', function () { pBar.classList.remove('on'); pRoot.innerHTML = ''; });
+
     function gCallback(resp) {
       if (!resp || !resp.credential || !gApp) return;
       gRect = null; gFloat.classList.remove('on');
@@ -137,6 +181,11 @@
       if (d && d.tes === 'reload' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
         document.getElementById('loader').classList.remove('off');
         location.reload();
+        return;
+      }
+      if (d && d.tes === 'print' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
+        try { ev.source.postMessage({ tes: 'printing' }, ev.origin); } catch (e) { }
+        pPrepare(String(d.html || ''), String(d.css || ''));
         return;
       }
       if (!d || (d.tes !== 'auth' && d.tes !== 'gslot') || !/\.googleusercontent\.com$/.test(String(ev.origin))) return;
