@@ -59,9 +59,11 @@
 </head>
 <body>
   <div id="loader"><img src="logo.png" alt="" height="64"><i></i>กำลังเปิดระบบกิจกรรมชุมนุม…</div>
+  <!-- ใช้ลิงก์แบบ /macros/s/ (ไม่มี /a/macros/pcschool.ac.th) — แบบโดเมน Google จะตรวจบัญชีโรงเรียนที่ล็อกอินในเครื่อง
+       นักเรียนที่บัญชีไม่ได้เปิดบริการ Apps Script จะเจอ "ไม่สามารถใช้บริการได้" -->
   <!-- ลิงก์ Web app (Deploy → Manage deployments → Web app URL) — เปลี่ยนเมื่อสร้าง deployment ใหม่ (ปกติใช้ Edit → New version จึงไม่ต้องเปลี่ยน) -->
   <iframe id="app" title="ระบบกิจกรรมชุมนุม" allow="camera; clipboard-write"
-          src="https://script.google.com/a/macros/pcschool.ac.th/s/AKfycbxXQeRoxQHc2xpSaGXIW0Z9ESIZpJrU8MxVuvR0FsshsDx5I02wPfXfRshEJ38Xwru35w/exec"></iframe>
+          src="https://script.google.com/macros/s/AKfycbxXQeRoxQHc2xpSaGXIW0Z9ESIZpJrU8MxVuvR0FsshsDx5I02wPfXfRshEJ38Xwru35w/exec"></iframe>
   <div id="pbar" role="dialog" aria-modal="true"><div><b>เอกสารพร้อมพิมพ์</b><p id="pbar-msg">กดปุ่มด้านล่างเพื่อเปิดหน้าพิมพ์</p>
     <button type="button" class="go" id="pbar-go">พิมพ์เอกสาร</button><button type="button" class="no" id="pbar-no">ปิด</button></div></div>
   <div id="print-root"></div>
