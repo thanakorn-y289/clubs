@@ -212,12 +212,28 @@
       gApp.postMessage({ tes: 'gcred', credential: resp.credential, selectBy: String(resp.select_by || '') }, gOrigin);
     }
 
+    var KV_OK = /^clubs_(token|mode|ann_-?\d+(_s)?)$/;
+    function kvDump(st) {
+      var o = {};
+      try { for (var i = 0; i < st.length; i++) { var k = st.key(i); if (KV_OK.test(k)) o[k] = st.getItem(k); } } catch (e) { }
+      return o;
+    }
     window.addEventListener('message', function (ev) {
       var d = ev.data;
       // แอปขอโหลดใหม่ทั้งหน้า (ลากหน้าจอลงในมือถือ)
       if (d && d.tes === 'reload') wDbg('reloadMsg', String(ev.origin).slice(8, 20));
       if (d && d.tes === 'reload' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
         wReload();
+        return;
+      }
+      // ที่เก็บค่าแทนแอป: กรอบ credentialless ล้างข้อมูลทุกครั้งที่โหลดใหม่ (ล็อกอิน/ติ๊กไม่แสดงประกาศวันนี้)
+      if (d && (d.tes === 'kvget' || d.tes === 'kvset') && /\.googleusercontent\.com$/.test(String(ev.origin))) {
+        if (d.tes === 'kvset') {
+          var k = String(d.k || ''), st = d.area === 'l' ? localStorage : sessionStorage;
+          if (KV_OK.test(k) && String(d.v || '').length < 4096) try { if (d.v == null) st.removeItem(k); else st.setItem(k, String(d.v)); } catch (e) { }
+        } else {
+          try { ev.source.postMessage({ tes: 'kv', s: kvDump(sessionStorage), l: kvDump(localStorage) }, ev.origin); } catch (e) { }
+        }
         return;
       }
       if (d && d.tes === 'print' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
