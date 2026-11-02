@@ -113,6 +113,26 @@
       return true;
     }
 
+    // วิธีสำรอง: ไปหน้า Google ในแท็บเดิม แล้ว Google ส่ง id_token กลับมาท้ายลิงก์ (#) — ไม่ใช้หน้าต่างเด้งที่มือถือบางรุ่นค้างเป็นหน้าว่าง
+    // ต้องเพิ่ม https://thanakorn-y289.github.io/clubs/ ใน Authorized redirect URIs ของ OAuth Client นี้
+    var gPending = null;
+    function gRand() { var a = new Uint8Array(16); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+    function gRedirect() {
+      var st = gRand(), nonce = gRand();
+      try { sessionStorage.setItem('g_state', st); } catch (e) { }
+      var q = { client_id: GOOGLE_CLIENT_ID, redirect_uri: location.origin + location.pathname, response_type: 'id_token',
+        scope: 'openid email profile', hd: 'pcschool.ac.th', prompt: 'select_account', state: st, nonce: nonce };
+      document.getElementById('loader').classList.remove('off');
+      location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + Object.keys(q).map(function (k) { return k + '=' + encodeURIComponent(q[k]); }).join('&');
+    }
+    (function () {
+      if (!/[#&](id_token|error)=/.test(location.hash)) return;
+      var h = {}; location.hash.slice(1).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) h[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+      var want = ''; try { want = sessionStorage.getItem('g_state') || ''; sessionStorage.removeItem('g_state'); } catch (e) { }
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
+      if (h.id_token && want && h.state === want) { gPending = h.id_token; gPrompted = true; }
+    })();
+
     // เบราว์เซอร์ในแอป (LINE/Facebook/Instagram) Google ไม่วาดปุ่ม → ปุ่ม "เปิดในเบราว์เซอร์"
     var gInApp = IN_APP;
     var gFbTimer = 0;
@@ -236,6 +256,7 @@
         }
         return;
       }
+      if (d && d.tes === 'gredirect' && /\.googleusercontent\.com$/.test(String(ev.origin))) { gRedirect(); return; }
       if (d && d.tes === 'print' && /\.googleusercontent\.com$/.test(String(ev.origin))) {
         try { ev.source.postMessage({ tes: 'printing' }, ev.origin); } catch (e) { }
         pPrepare(String(d.html || ''), String(d.css || ''));
@@ -247,6 +268,7 @@
       if (d.state === 'login') {
         gWant = true;
         try { gApp.postMessage({ tes: 'gwrap' }, gOrigin); } catch (e) { }
+        if (gPending) { try { gApp.postMessage({ tes: 'gcred', credential: gPending, selectBy: 'redirect' }, gOrigin); } catch (e) { } gPending = null; }
         gPlace();
       } else {
         gWant = false; gRect = null; gPrompted = false; gBtnW = 0;
